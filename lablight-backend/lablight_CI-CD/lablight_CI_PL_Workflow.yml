@@ -1,0 +1,40 @@
+# .github/workflows/ci.yml
+name: CI_Build_for_lablight
+
+on:
+  push:
+    branches:
+      - main  # Trigger on push to main branch
+      - develop # Trigger on push to develop branch
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    #- name: Set up Helm
+    #  run: |
+    #    curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+    - name: Package Helm Chart
+      run: |
+        helm package ./my-helm-chart
+
+    # Optionally, you can add build/test steps here, e.g.:
+    # - Build Docker images
+    # - Run unit tests or integration tests
+
+    - name: Upload Helm package
+      uses: actions/upload-artifact@v3
+      with:
+        name: helm-package
+        path: ./my-helm-chart-*.tgz  # Upload Helm chart package for CD pipeline to use
+
+This CI pipeline:
+
+    Packages the Helm chart.
+    Uploads the packaged Helm chart as an artifact that will be used in the CD pipeline.
