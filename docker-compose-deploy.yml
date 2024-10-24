@@ -1,0 +1,25 @@
+version: "3.9"
+
+services:
+    proxy:
+        build: ./proxy
+        entrypoint: ["sh", "entrypoint.sh"]
+        ports:
+            - "80:80"
+            - "443:443"
+        depends_on:
+            - frontend
+    frontend:
+        build: ./frontend
+        entrypoint: ["/bin/sh", "-c", "npm start"]
+        ports:
+            - "3000:3000"
+        depends_on:
+            - backend 
+    backend:
+        build: ./backend
+        entrypoint: ["/bin/bash", "-c", "uvicorn main:app --host 0.0.0.0 --port 8000"]
+        volumes:
+            - ./backend/src:/app
+        ports:
+            - "8000:8000"
