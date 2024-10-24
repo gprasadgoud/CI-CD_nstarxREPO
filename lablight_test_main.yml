@@ -1,0 +1,64 @@
+name: CI LabLight Backend Pipeline
+on:
+  push:
+    branches:
+      - main
+      - develop_lablight
+
+env:
+  DOCKER_REGISTRY: 131656363428.dkr.ecr.us-west-1.amazonaws.com
+  IMAGE_NAME: test/lablight-helm
+  DOCKERFILE_LOCATION_FOLDER: backend
+  NAMESPACE: lablight-dev
+  DEPLOYMENT_NAME: lablight-helm
+  EKS_CLUSTER_NAME: eks-shi-ai-lab-001
+  HELM_CHART_DIR: ${{ github.workspace }}/lablight-backend
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        run: |
+          # Login to ECR and save the login command as an output
+          LOGIN_CMD=$(aws ecr get-login-password --region ${{ secrets.AWS_REGION }})
+          echo $LOGIN_CMD | docker login --username AWS --password-stdin ${{ env.DOCKER_REGISTRY }}
+          echo "login_cmd=$LOGIN_CMD" >> $GITHUB_OUTPUT
+
+      - name: Install Helm
+        run: |
+          curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+     
+      - name: Package and Push Helm Chart
+        run: |
+          # Create a temporary directory for the Helm repository
+          mkdir -p helm-repo
+          
+          # Package the chart
+          helm package $HELM_CHART_DIR -d helm-repo
+    
+          # Create index file
+          helm repo index helm-repo
+    
+          # Get the chart filename
+          CHART_FILE=$(ls helm-repo/*.tgz)
+          CHART_NAME=$(basename $CHART_FILE)
+          echo $CHART_NAME
+          
+          cd helm-repo
+          helm push $CHART_NAME oci://131656363428.dkr.ecr.us-west-1.amazonaws.com/test/
+         
+          echo "Successfully pushed Helm chart to ECR ${{ env.IMAGE_NAME }}"
+
+   

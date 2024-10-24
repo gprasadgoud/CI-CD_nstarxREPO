@@ -1,0 +1,54 @@
+name: CI LabLight Backend Original [shi_api_deployment]
+
+on:
+  push:
+    branches:
+      - main
+      - develop_lablight
+env:
+  DOCKER_REGISTRY: 131656363428.dkr.ecr.us-west-1.amazonaws.com
+  IMAGE_NAME: test/lablight-middleware
+  DOCKERFILE_LOCATION_FOLDER: backend
+  NAMESPACE: lablight-dev
+  DEPLOYMENT_NAME: lablight-middleware
+  EKS_CLUSTER_NAME: eks-shi-ai-lab-001
+  HELM_CHART_DIR:  ${{ github.workspace }}/lablight-backend
+  HELM_CHART_REPO: http://131656363428.dkr.ecr.us-west-1.amazonaws.com/test/lablight-helm
+
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v3
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Login to Docker Registry
+      run: |
+        aws ecr get-login-password --region us-west-1 |  docker login $DOCKER_REGISTRY -u AWS --password-stdin
+
+    - name: Build Docker Image
+      run: docker build -t $DOCKER_REGISTRY/$IMAGE_NAME:latest -f $DOCKERFILE_LOCATION_FOLDER/Dockerfile $DOCKERFILE_LOCATION_FOLDER
+
+    - name: Push Docker Image
+      run: docker push $DOCKER_REGISTRY/$IMAGE_NAME:latest
+
+    - name: Install Helm
+      run: |
+        curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+        
+    - name: Package Helm Chart
+      run: |
+        helm package $HELM_CHART_DIR
+        
+    
+     
+   
