@@ -1,0 +1,146 @@
+# Default values for lablight-middleware.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: 131656363428.dkr.ecr.us-west-1.amazonaws.com/lablight/lablight-middleware
+  pullPolicy: Always
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "latest"
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 9000
+
+ingress:
+  enabled: true
+  className: "alb"
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/load-balancer-name: lablight-middleware
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-west-1:131656363428:certificate/67c4d14c-399b-402e-a693-ad9ea98f7b81
+    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-2016-08
+  hosts:
+    - host: lablight-api.nstarxinc.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:   
+  - hosts:
+    - lablight-api.nstarxinc.com
+
+pv:
+  enabled: true
+  capacity:
+    storage: 1200Gi
+  volumeMode: Filesystem
+  accessMode: ReadWriteOnce
+  storageClassName: ""
+  claim:
+    resources:
+      requests:
+        storage: 1200Gi
+  csi:
+    driver: fsx.csi.aws.com
+    volumeHandle: fs-0d16ddf798ecaa73c
+    fsType: lustre
+    volumeAttributes:
+        dnsname: fs-0d16ddf798ecaa73c.fsx.us-west-1.amazonaws.com
+        mountname: jkh3hbmv
+
+env: 
+  PRODUCTION: True
+  UPLOADED_FILES_PATH: /mnt/data/s3/rag_build_your_own/Lablight/Documents
+  absolute_path_to_uploaded_files: /mnt/data/s3/rag_build_your_own/Lablight/Documents
+  UPLOADED_FILES_LOCATION: /mnt/data/s3/rag_build_your_own/Lablight/Documents
+  app_base_url: http://lablight-middleware.lablight-dev.svc.cluster.local
+  app_external_api: https://lablight-api.nstarxinc.com
+  ML_EMBEDDING_MODELS: '["bgelarge","Gte_Large","Ember_v1"]'
+  ML_LLM_MODELS: '["llama3","qwen2","llama3.1","phi3"]'
+  
+  ML_BACKEND_HOST: http://lablight-rag.lablight-dev.svc.cluster.local/
+  ML_CUSTOMIZED_RAG_HOST: http://lablight-rag.lablight-dev.svc.cluster.local/
+  mm_customized_chat_host: http://lablight-mmchatbot.lablight-dev.svc.cluster.local/
+  mm_chat_ml_backend_host: http://lablight-mmchatbot.lablight-dev.svc.cluster.local/
+  MM_CREATE_VECTOR_DB: "Customized_Bot/embedidng_creation"
+  MM_CUSTOMIZED_ASK_QUESTION_API: "Customized_Bot/bot_creation"
+  MM_CUSTOMRIZE_TEXT_TO_SPEECH_API: "Customized_Bot/text_to_audio"
+  MM_CUSTOMIZED_AUDIO_TO_TEXT_API: "Customized_Bot/audio_to_text"
+  TEXT_TO_SPEECH_ML_BACKEND_HOST: "http://lablight-tts.lablight-dev.svc.cluster.local/"
+  TEXT_TO_SPEECH_TEXT_TO_SPEECH_API: "try_it_now/text_to_audio"
+  mm_customize_text_to_speech_api:  "http://lablight-tts.lablight-dev.svc.cluster.local/try_it_now/text_to_audio"
+
+  # mm_create_vector_db
+  # MM_CHAT_ML_BACKEND_HOST:
+  # MM_CHAT_AUDIO_TO_TEXT_API 
+
+
+  mongo_uri: mongodb://tryitnowuser:tryitnow1234@mongodb.lablight-dev:27017/genai-lab
+  mongo_database: genai-lab
+
+envFrom:
+  - configMapRef:
+      name: lablight-middleware-configmap
+  # - secretRef:
+  #     name: secret-azure-credentials
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+nodeSelector: 
+  gpu: "false"
+
+tolerations: []
+# tolerations:
+#   - key: "non-gpu-node"
+#     operator: "Equal"
+#     value: "true"
+#     effect: "NoSchedule"
+
+affinity: {}

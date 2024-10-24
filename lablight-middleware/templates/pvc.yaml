@@ -1,0 +1,15 @@
+{{- if .Values.pv.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "lablight-middleware.fullname" . }}-pvc
+spec:
+  accessModes:
+    - {{ .Values.pv.accessMode }}
+  storageClassName: {{ .Values.pv.storageClassName }}
+  volumeMode: {{ .Values.pv.volumeMode }}
+  volumeName: {{ include "lablight-middleware.fullname" . }}-pv
+  resources:
+    requests:
+      storage: {{ .Values.pv.claim.resources.requests.storage }}
+{{- end }}

@@ -1,0 +1,25 @@
+{{- if .Values.pv.enabled }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ include "lablight-middleware.fullname" . }}-pv
+spec:
+  capacity:
+    storage: {{ .Values.pv.capacity.storage }}
+  volumeMode: {{ .Values.pv.volumeMode }}
+  accessModes:
+    - {{ .Values.pv.accessMode }}
+  storageClassName: {{ .Values.pv.storageClassName }}
+  persistentVolumeReclaimPolicy: {{ .Values.pv.reclaimPolicy }}
+  mountOptions:
+{{- range .Values.pv.mountOptions }}
+    - {{ . }}
+{{- end }}
+  csi:
+    driver: {{ .Values.pv.csi.driver }}
+    volumeHandle: {{ .Values.pv.csi.volumeHandle }}
+    fsType: {{ .Values.pv.csi.fsType }}
+    volumeAttributes:
+        dnsname: {{ .Values.pv.csi.volumeAttributes.dnsname }}
+        mountname: {{ .Values.pv.csi.volumeAttributes.mountname }}
+{{- end }}
