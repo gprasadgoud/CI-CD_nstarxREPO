@@ -1,0 +1,56 @@
+name: CD_Build_for_lablight
+
+on:
+  workflow_run:
+    workflows: ["CI_Build_for_lablight"] 
+    types:
+      - completed   
+env:
+  DOCKER_REGISTRY: 131656363428.dkr.ecr.us-west-1.amazonaws.com
+  IMAGE_NAME: lablight/lablight-backend
+  DOCKERFILE_LOCATION_FOLDER: backend
+  NAMESPACE: lablight-dev
+  DEPLOYMENT_NAME: lablight-backend
+  EKS_CLUSTER_NAME: eks-shi-ai-lab-001
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v3
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Login to Docker Registry
+      run: |
+        aws ecr get-login-password --region us-west-1 |  docker login $DOCKER_REGISTRY -u AWS --password-stdin
+
+
+    - name: Push Docker Image
+      run: |
+        echo "DOCKER_REGISTRY is: $DOCKER_REGISTRY $VAR_1"
+        docker push $DOCKER_REGISTRY/$IMAGE_NAME:latest
+
+
+    # - name: Install Helm
+    #   run: |
+    #     curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+ 
+    - name: Configure kubectl with EKS cluster
+      run: |
+        aws eks --region ${{ secrets.AWS_REGION }} update-kubeconfig --name ${{ secrets.EKS_CLUSTER_NAME }}
+
+    - name: Deploy Helm chart to EKS
+      run: |
+        helm upgrade --install my-release ${{ secrets.HELM_CHART_PATH }} \
+          --namespace default \
+          --set image.tag=${{ github.sha }}  # Optional, based on your chart's values.yaml
+
